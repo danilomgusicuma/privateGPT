@@ -3,3 +3,8 @@ pygpt4all==1.1.0
 chromadb==0.3.22
 llama-cpp-python==0.1.48
 urllib3==1.26.6
+
+fastapi~=0.95.1
+pydantic~=1.10.7
+python-dotenv~=1.0.0
+uvicorn~=0.22.0
