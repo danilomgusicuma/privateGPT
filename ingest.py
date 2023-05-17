@@ -34,29 +34,21 @@ def load_documents(source_dir: str) -> List[Document]:
     return [load_single_document(file_path) for file_path in all_files]
 
 
-def main():
-    # Load environment variables
-    persist_directory = os.environ.get('PERSIST_DIRECTORY')
-    source_directory = os.environ.get('SOURCE_DIRECTORY', 'source_documents')
-    llama_embeddings_model = os.environ.get('LLAMA_EMBEDDINGS_MODEL')
-    model_n_ctx = os.environ.get('MODEL_N_CTX')
+class DocumentLoader:
+    def __init__(self):
+        llama_embeddings_model = os.environ.get('LLAMA_EMBEDDINGS_MODEL')
+        model_n_ctx = os.environ.get('MODEL_N_CTX')
+        self.persist_directory = os.environ.get('PERSIST_DIRECTORY')
+        self.text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
+        self.llama = LlamaCppEmbeddings(model_path=llama_embeddings_model, n_ctx=model_n_ctx)
 
-    # Load documents and split in chunks
-    print(f"Loading documents from {source_directory}")
-    documents = load_documents(source_directory)
-    text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
-    texts = text_splitter.split_documents(documents)
-    print(f"Loaded {len(documents)} documents from {source_directory}")
-    print(f"Split into {len(texts)} chunks of text (max. 500 tokens each)")
-
-    # Create embeddings
-    llama = LlamaCppEmbeddings(model_path=llama_embeddings_model, n_ctx=model_n_ctx)
-    
-    # Create and store locally vectorstore
-    db = Chroma.from_documents(texts, llama, persist_directory=persist_directory, client_settings=CHROMA_SETTINGS)
-    db.persist()
-    db = None
-
-
-if __name__ == "__main__":
-    main()
+    def load_doc_content(self, doc_name: str, content: str):
+        document = Document(page_content=content, metadata={"source": doc_name})
+        texts = self.text_splitter.split_documents([document])
+        db = Chroma.from_documents(
+            texts,
+            self.llama,
+            persist_directory=self.persist_directory,
+            client_settings=CHROMA_SETTINGS
+        )
+        db.persist()
